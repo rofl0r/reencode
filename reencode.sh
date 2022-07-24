@@ -106,6 +106,16 @@ if ! $DVD ; then
 	currrate=$(getrate $sizemb)
 else
 	currrate=0
+	scan="-probesize 1G -analyzeduration 1G"
+	ffmpeg -probesize 1G -analyzeduration 1G -i "$vid"
+	echo "enter streams to pick like this: -map 0:1 -map 0:4"
+	read maps
+	echo "creating temp file: with map $maps"
+	ffmpeg -probesize 1G -analyzeduration 1G -i "$vid" -f mpeg -c copy $maps intermediate.mpeg
+	ffmpeg -probesize 1G -analyzeduration 1G -i intermediate.mpeg
+	echo "enter new streams to pick: like -map 0:1 -map 0:4"
+	read maps
+	vid=intermediate.mpeg
 fi
 echo "bitrate: $currrate"
 
@@ -148,8 +158,8 @@ echo "hit enter to accept, CTRL-C to break or a number if you want to set the vi
 read n
 test -z "$n" || vbr=$n
 # option making mp4 start immediately (streamable): -movflags faststart
-ffmpeg -y -i "$vid" -c:v libx264 -preset medium -b:v ${vbr}k -vf scale=${neww}:${newh} -pass 1 -c:a libopus -strict -2 -b:a ${AUDIO_KBIT}k -ac 2 -f mp4 /dev/null && \
-ffmpeg    -i "$vid" -c:v libx264 -preset medium -b:v ${vbr}k -vf scale=${neww}:${newh} -pass 2 -c:a libopus -strict -2 -b:a ${AUDIO_KBIT}k -ac 2 "$output" && \
+ffmpeg $scan -y -i "$vid" $maps -max_muxing_queue_size 1024 -c:v libx264 -preset medium -b:v ${vbr}k -vf scale=${neww}:${newh} -pass 1 -c:a libopus -strict -2 -b:a ${AUDIO_KBIT}k -ac 2 -f mp4 /dev/null && \
+ffmpeg $scan    -i "$vid" $maps -max_muxing_queue_size 1024 -c:v libx264 -preset medium -b:v ${vbr}k -vf scale=${neww}:${newh} -pass 2 -c:a libopus -strict -2 -b:a ${AUDIO_KBIT}k -ac 2 "$output" && \
 rm -f ffmpeg2pass-0.log ffmpeg2pass-0.log.mbtree
-
+#rm intermediate.mpeg
 # copy mp4 into mkv, making it seekable: -i foo.mp4 -map 0 -c copy bar.mkv
