@@ -79,7 +79,9 @@ dvdlen() {
 	printf %s "$l"
 	IFS="$s"
 }
-
+getstreams() {
+	ffmpeg -probesize 100M -analyzeduration 100M -i "$1" 2>&1 | grep '^[ ]*Stream #' | sed 's/^[ ]*Stream #//'
+}
 
 DVD=false
 vid="$1"
@@ -104,6 +106,10 @@ if ! $DVD ; then
 	sizemb=$(mb $(filesize "$vid"))
 	echo "size: $sizemb MB"
 	currrate=$(getrate $sizemb)
+	echo "Streams in video:"
+	getstreams "$vid"
+	echo "if you want to use any other than the default streams, hit CTRL-c now"
+	echo "and export maps like this: maps='-map 0:0 -map 0:2', then run again"
 else
 	currrate=0
 	scan="-probesize 1G -analyzeduration 1G"
