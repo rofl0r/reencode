@@ -158,7 +158,7 @@ echo "hit enter to accept, CTRL-C to break or a number if you want to set the vi
 read n
 test -z "$n" || vbr=$n
 # option making mp4 start immediately (streamable): -movflags faststart
-ffmpeg $scan -y -i "$vid" $maps -max_muxing_queue_size 1024 -c:v libx264 -preset medium -b:v ${vbr}k -vf scale=${neww}:${newh} -pass 1 -c:a libopus -strict -2 -b:a ${AUDIO_KBIT}k -ac 2 -f mp4 /dev/null && \
+ffmpeg $scan -y -i "$vid" $maps -max_muxing_queue_size 1024 -c:v libx264 -preset medium -b:v ${vbr}k -vf scale=${neww}:${newh} -pass 1 -strict -2 -an -f mp4 /dev/null && \
 ffmpeg $scan    -i "$vid" $maps -max_muxing_queue_size 1024 -c:v libx264 -preset medium -b:v ${vbr}k -vf scale=${neww}:${newh} -pass 2 -c:a libopus -strict -2 -b:a ${AUDIO_KBIT}k -ac 2 "$output" && \
 rm -f ffmpeg2pass-0.log ffmpeg2pass-0.log.mbtree
 #rm intermediate.mpeg
