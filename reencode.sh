@@ -157,6 +157,10 @@ echo "targeted bitrate is ${AUDIO_KBIT}kb for audio and $vbr for video, total: $
 echo "hit enter to accept, CTRL-C to break or a number if you want to set the video bitrate"
 read n
 test -z "$n" || vbr=$n
+
+# delete already existing output file, so ffmpeg doesn't ask questions
+test -f "$output" || rm -f "$output"
+
 # option making mp4 start immediately (streamable): -movflags faststart
 ffmpeg $scan -y -i "$vid" $maps -max_muxing_queue_size 1024 -c:v libx264 -preset medium -b:v ${vbr}k -vf scale=${neww}:${newh} -pass 1 -strict -2 -an -f mp4 /dev/null && \
 ffmpeg $scan    -i "$vid" $maps -max_muxing_queue_size 1024 -c:v libx264 -preset medium -b:v ${vbr}k -vf scale=${neww}:${newh} -pass 2 -c:a libopus -strict -2 -b:a ${AUDIO_KBIT}k -ac 2 "$output" && \
