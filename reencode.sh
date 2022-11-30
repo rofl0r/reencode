@@ -106,24 +106,31 @@ if ! $DVD ; then
 	sizemb=$(mb $(filesize "$vid"))
 	echo "size: $sizemb MB"
 	currrate=$(getrate $sizemb)
-	echo "Streams in video:"
-	getstreams "$vid"
-	echo "if you want to use any other than the default streams, hit CTRL-c now"
-	echo "and export maps like this: maps='-map 0:0 -map 0:2', then run again"
+	tmp_fmt=mp4
 else
 	currrate=0
 	scan="-probesize 1G -analyzeduration 1G"
 	ffmpeg -probesize 1G -analyzeduration 1G -i "$vid"
 	echo "enter streams to pick like this: -map 0:1 -map 0:4"
 	read maps
+	tmp_fmt=mpeg
+fi
+if false && test -n "$maps" ; then
 	echo "creating temp file: with map $maps"
-	ffmpeg -probesize 1G -analyzeduration 1G -i "$vid" -f mpeg -c copy $maps intermediate.mpeg
-	ffmpeg -probesize 1G -analyzeduration 1G -i intermediate.mpeg
+#	ffmpeg -probesize 1G -analyzeduration 1G -i "$vid" -f mpeg -c copy $maps intermediate.mkv
+	ffmpeg -probesize 1G -analyzeduration 1G -i "$vid" -c copy $maps intermediate.mkv
+	ffmpeg -probesize 1G -analyzeduration 1G -i intermediate.mkv
 	echo "enter new streams to pick: like -map 0:1 -map 0:4"
 	read maps
-	vid=intermediate.mpeg
+	vid=intermediate.mkv
 fi
 echo "bitrate: $currrate"
+if ! $DVD ; then
+	echo "Streams in video:"
+	getstreams "$vid"
+	echo "if you want to use any other than the default streams, hit CTRL-c now"
+	echo "and export maps like this: maps='-map 0:0 -map 0:2', then run again"
+fi
 
 echo "----re-encoding----"
 neww=0
@@ -167,9 +174,17 @@ test -z "$n" || vbr=$n
 # delete already existing output file, so ffmpeg doesn't ask questions
 test -f "$output" || rm -f "$output"
 
+vcodec=libx265
+pass() {
+if true && test "$vcodec" = libx265 ; then
+printf "-x265-params pass=%d\n" "$1"
+else #libx264
+printf "-pass %d\n" "$1"
+fi
+}
 # option making mp4 start immediately (streamable): -movflags faststart
-ffmpeg $scan -y -i "$vid" $maps -max_muxing_queue_size 1024 -c:v libx264 -preset medium -b:v ${vbr}k -vf scale=${neww}:${newh} -pass 1 -strict -2 -an -f mp4 /dev/null && \
-ffmpeg $scan    -i "$vid" $maps -max_muxing_queue_size 1024 -c:v libx264 -preset medium -b:v ${vbr}k -vf scale=${neww}:${newh} -pass 2 -c:a libopus -strict -2 -b:a ${AUDIO_KBIT}k -ac 2 "$output" && \
-rm -f ffmpeg2pass-0.log ffmpeg2pass-0.log.mbtree
+ffmpeg $scan -y -i "$vid"  -max_muxing_queue_size 1024 -c:v $vcodec -preset medium -b:v ${vbr}k -vf scale=${neww}:${newh} $(pass 1) -strict -2 -an -f mp4 /dev/null && \
+ffmpeg $scan    -i "$vid" $maps -c:s copy -max_muxing_queue_size 1024 -c:v $vcodec -preset medium -b:v ${vbr}k -vf scale=${neww}:${newh} $(pass 2) -c:a libopus -strict -2 -b:a ${AUDIO_KBIT}k -ac 2 "$output" && \
+rm -f ffmpeg2pass-0.log ffmpeg2pass-0.log.mbtree x265_2pass.log x265_2pass.log.cutree
 #rm intermediate.mpeg
 # copy mp4 into mkv, making it seekable: -i foo.mp4 -map 0 -c copy bar.mkv
