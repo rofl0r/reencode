@@ -6,8 +6,8 @@ getlen() {
 }
 getdim() {
   res=$(ffprobe -v error -of flat=s=_ -select_streams v:0 -show_entries stream=height,width "$1")
-  width=$(echo "$res" | grep width | cut -d = -f 2)
-  height=$(echo "$res" | grep height | cut -d = -f 2)
+  width=$(echo "$res" | grep width | head -n 1 | cut -d = -f 2)
+  height=$(echo "$res" | grep height | head -n 1 | cut -d = -f 2)
 }
 mb() {
 	echo $(($1 / (1024 * 1024)))
