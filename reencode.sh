@@ -177,10 +177,11 @@ test -f "$output" || rm -f "$output"
 vcodec=libx265
 pass() {
 if true && test "$vcodec" = libx265 ; then
-printf "-x265-params pass=%d\n" "$1"
+pst="-x265-params pass="
 else #libx264
-printf "-pass %d\n" "$1"
+pst="-pass "
 fi
+printf "%s%d\n" "$pst" "$1"
 }
 # option making mp4 start immediately (streamable): -movflags faststart
 ffmpeg $scan -y -i "$vid"  -max_muxing_queue_size 1024 -c:v $vcodec -preset medium -b:v ${vbr}k -vf scale=${neww}:${newh} $(pass 1) -strict -2 -an -f mp4 /dev/null && \
